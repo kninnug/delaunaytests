@@ -1,9 +1,18 @@
 import fs from 'fs';
 import path from 'path';
 
-function dedupePoints(points){
+const BASENAME = import.meta.url;
+
+/**
+ * De-duplicate an array of points.
+ * 
+ * @param {array:array:number} points The points.
+ * @return {array:array:number} The de-duplicated points.
+ */
+export function dedupePoints(points){
 	const seen = new Set,
 		ret = [];
+
 	for(const pnt of points){
 		const [x, y] = pnt,
 			key = '' + x + ',' + y;
@@ -13,7 +22,7 @@ function dedupePoints(points){
 		seen.add(key);
 		ret.push(pnt);
 	}
-	console.log('dup', points.length - seen.size);
+
 	return ret;
 }
 
@@ -24,7 +33,7 @@ function dedupePoints(points){
  *        [[x, y], [x, y], ...].
  * @return {object} The extent/bounds of the points as {minX, minY, maxX, maxY}.
  */
-function pointsExtent(points){
+export function pointsExtent(points){
 	let minX = Infinity,
 		minY = Infinity,
 		maxX = -Infinity,
@@ -52,7 +61,7 @@ function pointsExtent(points){
  * @param {number} offY The y offset to add to the resulting coordinates.
  * @return {array:array:number} The points, scaled and translated.
  */
-function scalePoints(points, width, height, offX = 0, offY = offX){
+export function scalePoints(points, width, height, offX = 0, offY = offX){
 	const bnd = pointsExtent(points),
 		curWidth = bnd.maxX - bnd.minX,
 		curHeight = bnd.maxY - bnd.minY,
@@ -69,7 +78,15 @@ function scalePoints(points, width, height, offX = 0, offY = offX){
 /**
  * A Delaunay test file.
  */
-class Test {
+export class TestFile {
+	/**
+	 * @param {array:array:number} points The vertices in the test.
+	 * @param {array:array:number} edges The constrained edges in the test.
+	 * @param {string} source Description of where the test came from.
+	 * @param {string} error If present, the error message expected from constraining.
+	 * @param {string} pth The path.
+	 * @param {boolean} dedupe If true, de-duplicate the vertices.
+	 */
 	constructor({points, edges, source = null, error = null}, pth, dedupe){
 		this.points = dedupe ? dedupePoints(points) : points;
 		this.edges = edges;
@@ -88,7 +105,7 @@ class Test {
  * @return {URL} The absolute path.
  */
 function relapath(pth){
-	return new URL(pth, import.meta.url);
+	return new URL(pth, BASENAME);
 }
 
 /**
@@ -110,12 +127,12 @@ function collectFiles(dir){
  * Load a test file from the given absolute path.
  *
  * @param {URL} pth The path to the test file.
- * @return {Test} The test object.
+ * @return {TestFile} The test object.
  */
-function loadFile(pth, dedupe){
+export function loadFile(pth, dedupe){
 	//console.log('load', pth.pathname);
 	const ret = JSON.parse(fs.readFileSync(pth, 'utf8'));
-	return new Test(ret, pth, dedupe);
+	return new TestFile(ret, pth, dedupe);
 }
 
 /**
@@ -126,7 +143,7 @@ function loadFile(pth, dedupe){
  *        Constrainautor to throw an error.
  * @return {array:Test} The loaded tests.
  */
-function loadTests(allowErrors = false, dedupe = false){
+export function loadTests(allowErrors = false, dedupe = false){
 	const ret = collectFiles(relapath('./files')).map(p => loadFile(p, dedupe));
 	return ret.filter(test => allowErrors ? true : !test.error);
 }
@@ -134,18 +151,11 @@ function loadTests(allowErrors = false, dedupe = false){
 /**
  * Find a test with the given name.
  *
- * @param {array:Test} tests The test files to look through.
+ * @param {array:TestFile} tests The test files to look through.
  * @param {string} name The name to match.
- * @return {Test|undefined} The test, or undefined if there are none with that
+ * @return {TestFile|undefined} The test, or undefined if there are none with that
  *         name.
  */
-function findTest(tests, name){
+export function findTest(tests, name){
 	return tests.find(t => t.name.includes(name));
 }
-
-export {
-	Test,
-	loadFile,
-	findTest,
-	loadTests
-};
