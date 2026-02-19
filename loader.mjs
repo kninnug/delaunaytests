@@ -87,8 +87,14 @@ export class TestFile {
 	 * @param {string} pth The path.
 	 * @param {boolean} dedupe If true, de-duplicate the vertices.
 	 */
-	constructor({points, edges, source = null, error = null}, pth, dedupe){
-		this.points = dedupe ? dedupePoints(points) : points;
+	constructor({points, edges, source = null, error = null, scale = null}, pth, dedupe){
+		this.points = points;
+		if(dedupe){
+			this.points = dedupePoints(this.points);
+		}
+		if(scale){
+			this.points = this.points.map(([x, y]) => [x*scale, y*scale]);
+		}
 		this.edges = edges;
 		this.source = source;
 		this.error = error;
